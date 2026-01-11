@@ -1,51 +1,38 @@
-name: Test Website Access
+name: Test Website Accessibility
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
 
 jobs:
-  test:
+  test-access:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Step 1 - Checkout code
-      uses: actions/checkout@v3
+    - name: 检出代码
+      uses: actions/checkout@v4
     
-    - name: Step 2 - Show GitHub IP
-      run: |
-        echo "GitHub Runner Information:"
-        echo "=========================="
-        echo "Public IP: $(curl -s ifconfig.me)"
-        echo "Test Time: $(date)"
-        echo ""
+    - name: 设置 Python 环境
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
     
-    - name: Step 3 - Test First Website
+    - name: 安装依赖
       run: |
-        echo "Testing: https://epg.51zmt.top:8001"
-        echo "----------------------------------"
-        if curl -k -s --max-time 30 "https://epg.51zmt.top:8001" > /dev/null; then
-          echo "✅ Website 1 is accessible"
-          curl -k -s -o /dev/null -w "Status Code: %{http_code}\nResponse Time: %{time_total}s\n" --max-time 30 "https://epg.51zmt.top:8001"
-        else
-          echo "❌ Website 1 is NOT accessible"
-        fi
-        echo ""
+        pip install -r requirements.txt
     
-    - name: Step 4 - Test Second Website
+    - name: 运行网站访问测试
       run: |
-        echo "Testing: https://epg.51zmt.top:8001/sctvmulticast.html"
-        echo "------------------------------------------------------"
-        if curl -k -s --max-time 30 "https://epg.51zmt.top:8001/sctvmulticast.html" > /dev/null; then
-          echo "✅ Website 2 is accessible"
-          curl -k -s -o /dev/null -w "Status Code: %{http_code}\nResponse Time: %{time_total}s\n" --max-time 30 "https://epg.51zmt.top:8001/sctvmulticast.html"
-        else
-          echo "❌ Website 2 is NOT accessible"
-        fi
-        echo ""
+        python test_access.py
     
-    - name: Step 5 - Test Summary
-      run: |
-        echo "Test Summary:"
-        echo "============="
-        echo "Completed at: $(date)"
-        echo "GitHub Runner IP: $(curl -s ifconfig.me)"
+    - name: 上传测试日志
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-access-log
+        path: |
+          *.log
+        retention-days: 7
